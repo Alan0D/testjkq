@@ -26,6 +26,7 @@ The aws-cli package works on Python versions:
 
 -  `Notices <#notices>`__
 -  `Installation <#installation>`__
+-  `API Keys and Credentials <#api-keys-and-credentials>`__
 -  `Getting Started <#getting-started>`__
 -  `Getting Help <#getting-help>`__
 -  `More Resources <#more-resources>`__
@@ -58,6 +59,110 @@ You can find more detailed installation instructions `here <https://docs.aws.ama
 
 If you want to run the ``v2`` development branch of the CLI, see the
 "CLI Dev Version" section below.
+
+
+-----------------------
+API Keys and Credentials
+-----------------------
+
+Secure management of your AWS credentials is crucial for maintaining the security of your AWS resources. The AWS CLI uses these credentials to authenticate your requests to AWS services.
+
+**Types of Credentials**
+
+1. **AWS Access Key ID and Secret Access Key**: The primary credentials used to authenticate with AWS services.
+   
+2. **Session Token**: Used with temporary credentials for additional security.
+
+**Methods for Managing Credentials**
+
+There are several ways to provide your credentials to the AWS CLI:
+
+1. **Environment Variables** (recommended for temporary sessions):
+   
+   .. code-block:: bash
+   
+       $ export AWS_ACCESS_KEY_ID=<your_access_key>
+       $ export AWS_SECRET_ACCESS_KEY=<your_secret_key>
+       $ export AWS_SESSION_TOKEN=<your_session_token>  # if using temporary credentials
+   
+2. **Shared Credentials File** (recommended for local development):
+   
+   Create a file at ``~/.aws/credentials`` (Linux/Mac) or ``%UserProfile%\.aws\credentials`` (Windows):
+   
+   .. code-block:: ini
+   
+       [default]
+       aws_access_key_id = <your_access_key>
+       aws_secret_access_key = <your_secret_key>
+       aws_session_token = <your_session_token>  # if using temporary credentials
+       
+       [project1]
+       aws_access_key_id = <project1_access_key>
+       aws_secret_access_key = <project1_secret_key>
+   
+   You can specify a different location for this file using:
+   
+   .. code-block:: bash
+   
+       $ export AWS_SHARED_CREDENTIALS_FILE=/path/to/credentials_file
+   
+3. **AWS Config File**:
+   
+   Create a file at ``~/.aws/config`` (Linux/Mac) or ``%UserProfile%\.aws\config`` (Windows):
+   
+   .. code-block:: ini
+   
+       [default]
+       aws_access_key_id = <your_access_key>
+       aws_secret_access_key = <your_secret_key>
+       region = us-west-2
+       
+       [profile project1]
+       aws_access_key_id = <project1_access_key>
+       aws_secret_access_key = <project1_secret_key>
+       region = us-east-1
+   
+   You can specify a different location for this file using:
+   
+   .. code-block:: bash
+   
+       $ export AWS_CONFIG_FILE=/path/to/config_file
+   
+4. **IAM Roles** (recommended for EC2 instances and production environments):
+   
+   When running on an EC2 instance, use IAM roles to automatically obtain credentials without storing them in files or environment variables.
+
+5. **AWS Single Sign-On (SSO)**:
+   
+   For organizations using AWS SSO, configure profiles in your config file:
+   
+   .. code-block:: ini
+   
+       [profile my-sso-profile]
+       sso_start_url = https://my-sso-portal.awsapps.com/start
+       sso_region = us-east-1
+       sso_account_id = 123456789011
+       sso_role_name = SSOReadOnlyRole
+       region = us-west-2
+       output = json
+
+**Security Best Practices**
+
+1. **Never hardcode credentials** in your application code or commit them to version control.
+   
+2. **Use temporary credentials** whenever possible instead of long-term access keys.
+   
+3. **Rotate access keys** regularly (every 90 days recommended).
+   
+4. **Use IAM roles** for applications running on AWS services like EC2, ECS, or Lambda.
+   
+5. **Apply the principle of least privilege** by granting only the permissions needed.
+   
+6. **Enable Multi-Factor Authentication (MFA)** for all users.
+   
+7. **Monitor credential usage** with AWS CloudTrail.
+
+For more information on credential security, see the `AWS Security Best Practices <https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html>`__ and `IAM User Guide <https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html>`__.
 
 
 ------------
@@ -98,13 +203,7 @@ For further details please refer to the top of ``bin/aws_zsh_completer.sh``.
 Getting Started
 ---------------
 
-Before using aws-cli, you need to tell it about your AWS credentials.  You
-can do this in several ways:
-
-* Environment variables
-* Shared credentials file
-* Config file
-* IAM Role
+Before using aws-cli, you need to configure your AWS credentials. For detailed information about credential types and configuration methods, see the `API Keys and Credentials <#api-keys-and-credentials>`__ section above.
 
 The quickest way to get started is to run the ``aws configure`` command::
 
@@ -114,63 +213,15 @@ The quickest way to get started is to run the ``aws configure`` command::
     Default region name [us-west-2]: us-west-2
     Default output format [None]: json
 
-To use environment variables, do the following::
+This command will prompt you for your credentials and store them in the shared credentials file located at ``~/.aws/credentials`` (or ``%UserProfile%\.aws\credentials`` on Windows).
 
-    $ export AWS_ACCESS_KEY_ID=<access_key>
-    $ export AWS_SECRET_ACCESS_KEY=<secret_key>
+Once you've configured your credentials, you can start using the AWS CLI to interact with AWS services. For example, to list your S3 buckets::
 
-To use the shared credentials file, create an INI formatted file like this::
+    $ aws s3 ls
 
-    [default]
-    aws_access_key_id=foo
-    aws_secret_access_key=bar
-
-    [testing]
-    aws_access_key_id=foo
-    aws_secret_access_key=bar
-
-and place it in ``~/.aws/credentials`` (or in
-``%UserProfile%\.aws/credentials`` on Windows). If you wish to place the
-shared credentials file in a different location than the one specified above,
-you need to tell aws-cli where to find it.  Do this by setting
-the appropriate environment variable::
-
-    $ export AWS_SHARED_CREDENTIALS_FILE=/path/to/shared_credentials_file
-
-To use a config file, create a configuration file like this::
-
-    [default]
-    aws_access_key_id=<default access key>
-    aws_secret_access_key=<default secret key>
-    # Optional, to define default region for this profile.
-    region=us-west-1
-
-    [profile testing]
-    aws_access_key_id=<testing access key>
-    aws_secret_access_key=<testing secret key>
-    region=us-west-2
-
-and place it in ``~/.aws/config`` (or in ``%UserProfile%\.aws\config`` on Windows). If you wish to place the config file in a different location than the one
-specified above, you need to tell aws-cli where to find it.  Do this by setting
-the appropriate environment variable::
-
-    $ export AWS_CONFIG_FILE=/path/to/config_file
-
-As you can see, you can have multiple ``profiles`` defined in both the shared
-credentials file and the  configuration file. You can then specify which
-profile to use by using the ``--profile`` option. If no profile is specified
-the ``default`` profile is used.
-
-In the config file, except for the default profile, you
-**must** prefix each config section of a profile group with ``profile``.
-For example, if you have a profile named "testing" the section header would
-be ``[profile testing]``.
-
-The final option for credentials is highly recommended if you are
-using aws-cli on an EC2 instance.  IAM Roles are
-a great way to have credentials installed automatically on your
-instance.  If you are using IAM Roles, aws-cli will find them and use
-them automatically.
+For more information about configuration options, please refer to the
+`AWS CLI Configuration Variables topic <http://docs.aws.amazon.com/cli/latest/topic/config-vars.html#cli-aws-help-config-vars>`_. You can access this topic
+from the CLI as well by running ``aws help config-vars``.
 
 ----------------------------
 Other Configurable Variables
